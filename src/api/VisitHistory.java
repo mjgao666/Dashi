@@ -10,6 +10,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,24 +39,22 @@ public class VisitHistory extends HttpServlet {
 	 */
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		try {
-                                            DBConnection connection = new MySQLDBConnection();
-			JSONArray array = null;
-			if (request.getParameterMap().containsKey("user_id")) {
-				String userId = request.getParameter("user_id");
-				Set<String> visited_business_id = connection.getVisitedRestaurants(userId);
-				array = new JSONArray();
-				for (String id : visited_business_id) {
-					array.put(connection.getRestaurantsById(id, true));
-				}
-				RpcParser.writeOutput(response, array);
-			} else {
-				RpcParser.writeOutput(response, new JSONObject().put("status", "InvalidParameter"));
+        // allow access only if session exists
+        HttpSession session = request.getSession();
+        if (session.getAttribute("user") == null) {
+        	response.setStatus(403);
+            return;
+            }
+		JSONArray array = null;
+			String userId = (String) session.getAttribute("user");
+			Set<String> visited_business_id = connection.getVisitedRestaurants(userId);
+			array = new JSONArray();
+			for (String id : visited_business_id) {
+				array.put(connection.getRestaurantsById(id, true));
 			}
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
+			RpcParser.writeOutput(response, array);
 	}
+
 
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
@@ -63,6 +62,12 @@ public class VisitHistory extends HttpServlet {
 	private static final DBConnection connection = new MySQLDBConnection();
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 				throws ServletException, IOException {
+		// allow access only if session exists
+		HttpSession session = request.getSession();
+		if (session.getAttribute("user") == null) {
+			response.setStatus(403);
+			return;
+		}
 			try {
 				JSONObject input = RpcParser.parseInput(request);
 				if (input.has("user_id") && input.has("visited")) {
@@ -84,6 +89,12 @@ public class VisitHistory extends HttpServlet {
 		}
 	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		// allow access only if session exists
+		HttpSession session = request.getSession();
+		if (session.getAttribute("user") == null) {
+			response.setStatus(403);
+			return;
+		}
 		try {
 			JSONObject input = RpcParser.parseInput(request);
 			if (input.has("user_id") && input.has("visited")) {
